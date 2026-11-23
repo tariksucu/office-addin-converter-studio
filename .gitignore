@@ -1,0 +1,7 @@
+node_modules/
+# Build output (tools/build.mjs): made from the source, never committed. manifest/ is committed.
+dist/
+
+coverage/
+test-results/
+.DS_Store

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0" xsi:type="MailApp">
+  <Id>12f68e10-b4e3-420b-9bdc-ea765829a5f4</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Converter Studio</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Attachment Converter for Converter Studio"/>
+  <Description DefaultValue="Convert email attachments with Converter Studio: HEIC photos to JPG, Word, Excel and PowerPoint files to PDF, smaller PDFs and more. Replace an attachment while you write, or reply with the converted file."/>
+  <IconUrl DefaultValue="https://converter.studio/integrations/office/assets/icon-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://converter.studio/integrations/office/assets/icon-128.png"/>
+  <SupportUrl DefaultValue="https://converter.studio/support"/>
+  <Hosts>
+    <Host Name="Mailbox"/>
+  </Hosts>
+  <Requirements>
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.8"/>
+    </Sets>
+  </Requirements>
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://converter.studio/integrations/office/taskpane.html"/>
+        <RequestedHeight>360</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+    <Form xsi:type="ItemEdit">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="https://converter.studio/integrations/office/taskpane.html"/>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+  <Permissions>ReadWriteItem</Permissions>
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit"/>
+  </Rule>
+  <DisableEntityHighlighting>true</DisableEntityHighlighting>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Requirements>
+      <bt:Sets DefaultMinVersion="1.8">
+        <bt:Set Name="Mailbox"/>
+      </bt:Sets>
+    </Requirements>
+    <Hosts>
+      <Host xsi:type="MailHost">
+        <DesktopFormFactor>
+          <FunctionFile resid="Commands.Url"/>
+          <ExtensionPoint xsi:type="MessageReadCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="ReadGroup">
+                <Label resid="Group.Label"/>
+                <Control xsi:type="Button" id="ReadButton">
+                  <Label resid="Button.Label"/>
+                  <Supertip>
+                    <Title resid="Button.Label"/>
+                    <Description resid="ReadButton.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+          <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+            <OfficeTab id="TabDefault">
+              <Group id="ComposeGroup">
+                <Label resid="Group.Label"/>
+                <Control xsi:type="Button" id="ComposeButton">
+                  <Label resid="Button.Label"/>
+                  <Supertip>
+                    <Title resid="Button.Label"/>
+                    <Description resid="ComposeButton.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+      <bt:Image id="Icon.16" DefaultValue="https://converter.studio/integrations/office/assets/icon-16.png"/>
+      <bt:Image id="Icon.32" DefaultValue="https://converter.studio/integrations/office/assets/icon-32.png"/>
+      <bt:Image id="Icon.80" DefaultValue="https://converter.studio/integrations/office/assets/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+      <bt:Url id="Commands.Url" DefaultValue="https://converter.studio/integrations/office/commands.html"/>
+      <bt:Url id="Taskpane.Url" DefaultValue="https://converter.studio/integrations/office/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+      <bt:String id="Group.Label" DefaultValue="Converter Studio"/>
+      <bt:String id="Button.Label" DefaultValue="Convert attachments"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+      <bt:String id="ReadButton.Tooltip" DefaultValue="Convert this message’s attachments with Converter Studio (HEIC to JPG, Office files to PDF, smaller PDFs and more), then reply with the result or download it."/>
+      <bt:String id="ComposeButton.Tooltip" DefaultValue="Convert the attachments of the message you are writing with Converter Studio, and replace them or attach the result."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

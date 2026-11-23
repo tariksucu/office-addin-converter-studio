@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+
+# Cancel in-progress runs for the same branch/PR.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      # Microsoft's lint rules for Office add-ins (eslint-plugin-office-addins) and typescript-eslint.
+      - name: Lint
+        run: npm run lint
+
+      # Unit tests with a fake Office.js and a fake Converter Studio API: no network.
+      - name: Test
+        run: npm test
+
+      # The bundle, and the manifests regenerated: they must match the committed manifest/ files.
+      - name: Build
+        run: |
+          npm run build
+          git diff --exit-code manifest/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: task-pane
+          path: dist/
+          retention-days: 7

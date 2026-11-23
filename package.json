@@ -1,0 +1,45 @@
+{
+  "name": "office-addin-converter-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Converter Studio add-ins for Outlook, Word, Excel and PowerPoint: convert mail attachments, insert pictures Office cannot open and text from scans, and export documents to formats Office does not save.",
+  "license": "MIT",
+  "author": "Converter Studio <support@converter.studio> (https://converter.studio)",
+  "homepage": "https://converter.studio/developers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tariksucu/office-addin-converter-studio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tariksucu/office-addin-converter-studio/issues",
+    "email": "support@converter.studio"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "manifests": "node tools/build.mjs --manifests",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "validate": "node tools/build.mjs && office-addin-manifest validate -p manifest/outlook.xml && office-addin-manifest validate -p manifest/office.xml",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/jsdom": "21.1.7",
+    "@types/node": "24.19.2",
+    "@types/office-js": "1.0.616",
+    "esbuild": "0.28.2",
+    "eslint": "10.14.0",
+    "eslint-plugin-office-addins": "5.0.1",
+    "globals": "17.14.0",
+    "jsdom": "30.1.3",
+    "office-addin-manifest": "3.0.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.1.0"
+  }
+}

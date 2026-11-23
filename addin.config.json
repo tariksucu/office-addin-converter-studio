@@ -1,0 +1,16 @@
+{
+  "$comment": "The one place for the add-ins' address and identity. Every URL in both manifests and the task pane's API address (<origin>/api) come from baseUrl; tools/build.mjs --base overrides it for a local run. The ids are the add-ins' permanent identities in Office and Partner Center: never change them.",
+  "baseUrl": "https://converter.studio/integrations/office/",
+  "providerName": "Converter Studio",
+  "supportUrl": "https://converter.studio/support",
+  "outlook": {
+    "id": "12f68e10-b4e3-420b-9bdc-ea765829a5f4",
+    "name": "Attachment Converter for Converter Studio",
+    "description": "Convert email attachments with Converter Studio: HEIC photos to JPG, Word, Excel and PowerPoint files to PDF, smaller PDFs and more. Replace an attachment while you write, or reply with the converted file."
+  },
+  "office": {
+    "id": "146b3a96-2687-4479-b8fa-4d2cf2e99273",
+    "name": "File Converter for Converter Studio",
+    "description": "Insert pictures Office cannot open (HEIC, camera RAW, AVIF, WebP, EPS, Illustrator, a PDF page), insert the text of a scan, and export the document to formats Office does not save, with Converter Studio."
+  }
+}
