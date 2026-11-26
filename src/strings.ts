@@ -46,6 +46,58 @@ const en = {
   attached: (name: string) => `${name} is attached.`,
   replaced: (name: string) => `${name} replaced the original.`,
   replyOpened: 'A reply with the file is open.',
+  // Fit attachments for sending (Outlook, while writing).
+  fitTitle: 'Fit attachments for sending',
+  fitTarget: 'Total size',
+  fitTargets: {
+    16: '16 MB (gets through Gmail and Yahoo Mail)',
+    10: '10 MB (also Outlook.com and iCloud Mail)',
+  } as Readonly<Record<number, string>>,
+  fitButton: 'Fit attachments',
+  fitHint:
+    'Makes the attachments of this message smaller until they fit, and replaces them in place. Photos are made smaller on this computer, at no charge and without an account; they lose their metadata, location included.',
+  fitHintServer:
+    'PDFs, videos and sound that still do not fit are made smaller on Converter Studio’s servers, on your credits, after you see the price.',
+  fitHintNoKey:
+    'PDFs, videos and sound need Converter Studio’s servers and an API key (see below).',
+  fitChecking: 'Checking the attachments…',
+  fitPhotos: (done: number, total: number) =>
+    `Making photos smaller on this computer… ${done} of ${total}`,
+  fitSending: (name: string, percent: number) => `Sending ${name}… ${percent}%`,
+  fitPricing: (name: string) => `Getting the price for ${name}…`,
+  fitConverting: (name: string) => `Making ${name} smaller…`,
+  fitReplacing: 'Replacing the attachments…',
+  fitPrice: (credits: number, names: string) =>
+    `Making ${names} smaller on Converter Studio’s servers costs ${credits} ${credits === 1 ? 'credit' : 'credits'}.`,
+  /** The price question’s answers, as in the Thunderbird add-on: “Fit for 1 credit” / Cancel. */
+  fitPay: (credits: number) => `Fit for ${credits} ${credits === 1 ? 'credit' : 'credits'}`,
+  fitEmpty: 'This message has no attachments.',
+  fitAlready: (target: number, size: string) =>
+    `The attachments are already under ${target} MB (${size}). Nothing was changed.`,
+  fitSummary: (count: number, before: string, after: string) =>
+    `${count} ${count === 1 ? 'attachment' : 'attachments'}, ${before === after ? before : `${before} → ${after}`}.`,
+  fitFits: (allFour: boolean) =>
+    allFour ? 'Fits Gmail, Yahoo Mail, Outlook.com and iCloud Mail.' : 'Fits Gmail and Yahoo Mail.',
+  fitStillOver: (target: number, list: string) => `Still over ${target} MB: ${list}.`,
+  fitOneDrive: (count: number) =>
+    `Share ${count === 1 ? 'it' : 'them'} as a OneDrive link instead: upload to OneDrive, then attach from there as a link.`,
+  fitNeedKey: (names: string) =>
+    `With a Converter Studio API key, ${names} could be made smaller on its servers.`,
+  fitKeyLink: 'Create an API key',
+  fitSkipped: (names: string) => `Not converted, so nothing was charged: ${names}.`,
+  /** The servers could not make these smaller (`notSmaller`): as in the Thunderbird add-on. */
+  fitKept: (names: string, count: number) =>
+    count === 1
+      ? `Already as small as it gets, so kept as it was (nothing charged): ${names}.`
+      : `Already as small as they get, so kept as they were (nothing charged): ${names}.`,
+  fitFailed: (name: string, message: string) => `${name} stays as it was: ${message}`,
+  fitRemoved: 'it was removed from the message meanwhile.',
+  fitNotSmaller: 'the result was not smaller.',
+  /** "a", "a and b", "a, b and c". */
+  list: (items: readonly string[]) =>
+    items.length <= 1
+      ? (items[0] ?? '')
+      : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`,
   // Word, Excel, PowerPoint.
   pictureTitle: 'Insert a picture',
   pictureHint:

@@ -5,7 +5,7 @@ import formatsFixture from './fixtures/formats.json';
  * Converter Studio's REST API in memory, behind a `fetch`: what the add-in sends and how it
  * reacts to the answers, without a server. Shapes follow the API reference
  * (https://converter.studio/developers); the format list is a real answer of `GET /v1/formats`
- * (test/fixtures/formats.json).
+ * (test/fixtures/formats.json; its `compress` as the API lists it from 2026-11-26).
  */
 
 export const BASE = 'https://converter.studio/api';
@@ -27,6 +27,11 @@ export interface Scenario {
   accountCredits: number;
   /** The result's extension when it is not the target's (a ZIP of pages). */
   outputExtension?: string;
+  /**
+   * Uploads of these names come back as they were (`notSmaller`: nothing smaller could be made,
+   * so the result is the upload itself and nothing is charged).
+   */
+  notSmaller?: readonly string[];
 }
 
 export interface Seen {
@@ -73,18 +78,20 @@ export function fakeApi(overrides: Partial<Scenario> = {}) {
 
   const view = (job: Job): Conversion => {
     const done = job.status === 'done';
+    const kept = done && (scenario.notSmaller ?? []).includes(job.inputName);
     return {
       id: job.id,
       status: job.status,
       from: job.inputName.split('.').pop() ?? null,
       to: job.to,
       inputName: job.inputName,
-      credits: job.credits,
+      credits: kept ? 0 : job.credits,
       progress: done ? 1 : 0.5,
       outputName: done
         ? job.inputName.replace(/\.\w+$/, `.${scenario.outputExtension ?? job.to}`)
         : null,
-      outputSize: done ? scenario.output.length : null,
+      outputSize: done ? (kept ? job.uploadSize : scenario.output.length) : null,
+      notSmaller: kept,
       downloadUrl: done ? `${BASE}/jobs/${job.id}/download?token=t-${job.id}` : null,
       expiresAt: done ? '2026-11-23T12:00:00.000Z' : null,
       error: job.status === 'failed' && scenario.fail ? scenario.fail : null,

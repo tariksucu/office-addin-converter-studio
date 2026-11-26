@@ -22,12 +22,22 @@ export interface MailAttachment {
 
 export type MailMode = 'read' | 'compose';
 
+/**
+ * Any attachment of a draft: a file, a picture inside the body (`inline`), an attached email or
+ * event (`item`), or a link to a file in OneDrive (`cloud`, which travels as a link only).
+ */
+export interface DraftAttachment extends MailAttachment {
+  readonly kind: 'file' | 'inline' | 'item' | 'cloud';
+}
+
 /** The largest attachment Outlook takes from an add-in: 25 MB before Base64 (Microsoft's limit). */
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
 export interface Mail {
   readonly mode: MailMode;
   list(): Promise<MailAttachment[]>;
+  /** Compose: every attachment of the draft, in Outlook's order (files are `list()`'s). */
+  everything(): Promise<DraftAttachment[]>;
   content(attachment: MailAttachment): Promise<Blob>;
   /** Compose: adds the file to the draft, resolving the new attachment's id. */
   attach(file: Blob, name: string): Promise<string>;
@@ -48,6 +58,13 @@ interface Details {
   readonly size: number;
   readonly attachmentType: string;
   readonly isInline: boolean;
+}
+
+function kindOf(detail: Details, office: OfficeApi): DraftAttachment['kind'] {
+  const type = office.MailboxEnums.AttachmentType;
+  if (detail.attachmentType === String(type.Cloud)) return 'cloud';
+  if (detail.attachmentType === String(type.Item)) return 'item';
+  return detail.isInline ? 'inline' : 'file';
 }
 
 function files(details: readonly Details[], office: OfficeApi): MailAttachment[] {
@@ -75,6 +92,18 @@ export function openMail(office: OfficeApi): Mail | null {
           office,
         );
       return files(item.attachments ?? [], office);
+    },
+    async everything() {
+      if (!compose) throw new HostError('Open the message you are writing first.', 'readMode');
+      const details = await officeCall<Details[]>((done) =>
+        item.getAttachmentsAsync(done as never),
+      );
+      return details.map((a) => ({
+        id: a.id,
+        name: a.name,
+        size: a.size,
+        kind: kindOf(a, office),
+      }));
     },
     async content(attachment) {
       const content = await officeCall<Office.AttachmentContent>((done) =>

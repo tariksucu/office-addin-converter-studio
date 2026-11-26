@@ -6,7 +6,8 @@
 //   node tools/build.mjs --manifests        # only manifest/outlook.xml and manifest/office.xml
 //
 // dist/ is what is deployed at the base: taskpane.html, commands.html, taskpane.css, taskpane.js,
-// commands.js, legacy.js, assets/icon-*.png, and manifest/ (the two manifests for that address).
+// commands.js, legacy.js, assets/icon-*.png, vendor/libheif-js-1.23.5/ (the HEIC decoder, as published
+// on npm), and manifest/ (the two manifests for that address).
 // manifest/ in this folder holds the production manifests, committed: they are what Partner
 // Center gets, and the tests check they match this generator.
 import { build } from 'esbuild';
@@ -58,5 +59,26 @@ for (const file of ['taskpane.html', 'commands.html', 'taskpane.css', 'legacy.js
   copyFileSync(join(root, 'src', file), join(out, file));
 for (const size of ICON_SIZES)
   copyFileSync(join(root, 'assets', `icon-${size}.png`), join(out, 'assets', `icon-${size}.png`));
+
+// libheif-js (LGPL-3.0), the HEIC decoder for "Fit attachments for sending": its WebAssembly build
+// as published on npm, unchanged, in its own folder and loaded only when a HEIC photo needs it
+// (src/fit/heic.ts). The version is pinned here and in package.json.
+const LIBHEIF = { version: '1.23.5', folder: join(root, 'node_modules', 'libheif-js') };
+const libheifVersion = JSON.parse(
+  readFileSync(join(LIBHEIF.folder, 'package.json'), 'utf8'),
+).version;
+if (libheifVersion !== LIBHEIF.version)
+  throw new Error(`libheif-js ${libheifVersion} installed, ${LIBHEIF.version} expected (npm ci)`);
+const vendor = join(out, 'vendor', `libheif-js-${LIBHEIF.version}`);
+mkdirSync(join(vendor, 'libheif-wasm'), { recursive: true });
+for (const file of [
+  'LICENSE',
+  'README.md',
+  'package.json',
+  'libheif-wasm/LICENSE',
+  'libheif-wasm/libheif.js',
+  'libheif-wasm/libheif.wasm',
+])
+  copyFileSync(join(LIBHEIF.folder, file), join(vendor, file));
 writeManifests(join(out, 'manifest'), base);
 console.log(`built ${out} for ${base}`);

@@ -8,6 +8,7 @@ import {
 } from '../office/mail';
 import type { Context } from './app';
 import { clear, h, uid } from './dom';
+import { mountFit } from './fit-view';
 
 /**
  * Outlook: the message's file attachments, each with what Converter Studio can make of it (the
@@ -18,6 +19,24 @@ export function mountMail(context: Context, main: HTMLElement, mail: Mail): void
   const { doc, t, catalog, tasks } = context;
   const list = h(doc, 'ul', { className: 'attachments' });
   const refresh = h(doc, 'button', { type: 'button', onclick: () => void render() }, t.refresh);
+  if (mail.mode === 'compose')
+    main.append(
+      mountFit({
+        doc,
+        t,
+        tasks,
+        catalog,
+        mail,
+        photos: context.photos,
+        api: context.api,
+        targets: context.fitTargets,
+        openKeys: context.openKeys,
+        onChanged: () => {
+          void render();
+          context.refreshAccount();
+        },
+      }),
+    );
   main.append(
     h(doc, 'div', { className: 'section-head' }, h(doc, 'h2', {}, t.attachments), refresh),
     list,

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { mountApp } from '../src/ui/app';
 import { BASE, KEY, fakeApi, type Scenario } from './fake-api';
 import { fakeOffice, type FakeOptions } from './fake-office';
+import { fakePhotos, filler, photo } from './fake-photos';
 
 /**
  * The task pane in a DOM (jsdom), with the fake Office host and the fake API: what a user sees
@@ -58,12 +59,13 @@ async function mount(
     apiBase: BASE,
     fetch: server.fetch,
     storage: store,
+    photos: fakePhotos().encoder,
   });
   const text = () => root.textContent ?? '';
   const button = (label: string) =>
     [...root.querySelectorAll('button')].find((b) => b.textContent === label && !b.disabled);
   const click = async (label: string) => (await until(() => button(label), label)).click();
-  const status = () => root.querySelector('.status');
+  const status = () => root.querySelector<HTMLElement>('.status');
   return { dom, win, root, fake, server, store, opened, text, button, click, status };
 }
 
@@ -157,7 +159,7 @@ describe('Outlook', () => {
       mail: { mode: 'compose', attachments: [heic, docx] },
     });
     await until(() => pane.text().includes('IMG_0001.HEIC'), 'the attachments');
-    const select = pane.root.querySelector('select')!;
+    const select = pane.root.querySelector<HTMLSelectElement>('.attachments select')!;
     expect(select.value).toBe('jpg');
     expect(pane.root.querySelector(`label[for="${select.id}"]`)!.textContent).toBe(
       'Convert IMG_0001.HEIC to',
@@ -226,6 +228,151 @@ describe('Outlook', () => {
       mail: { mode: 'read', attachments: [{ id: 'z', name: 'data.xyz', bytes: bytes('?') }] },
     });
     await until(() => other.text().includes('Converter Studio cannot convert this file.'));
+  });
+});
+
+describe('Outlook: fit attachments for sending', () => {
+  const big = { id: 'b1', name: 'IMG_0007.jpg', bytes: photo(4032, 3024, 12_000_000) };
+  const notes = { id: 'b2', name: 'notes.txt', bytes: filler(1000) };
+  const contract = { id: 'b3', name: 'Contract.pdf', bytes: filler(12_000_000, '%PDF') };
+  const fitButton = (pane: Awaited<ReturnType<typeof mount>>) =>
+    pane.root.querySelector<HTMLButtonElement>('section.fit button.primary')!;
+
+  it('works before any key: photos on the computer, the choice of total remembered', async () => {
+    const pane = await mount(
+      { host: 'Outlook', mail: { mode: 'compose', attachments: [big, notes] } },
+      { key: null },
+    );
+    const section = await until(() => pane.root.querySelector('section.fit'), 'the fit section');
+    // Before the key's explanation and form.
+    expect(pane.text().indexOf('Fit attachments for sending')).toBeLessThan(
+      pane.text().indexOf('You need an account and an API key'),
+    );
+    expect(section.textContent).toMatch(/lose their metadata, location included/);
+    const select = section.querySelector('select')!;
+    expect(pane.root.querySelector(`label[for="${select.id}"]`)!.textContent).toBe('Total size');
+    expect(select.value).toBe('16');
+    select.value = '10';
+    select.dispatchEvent(new pane.win.Event('change'));
+    expect(pane.store.getItem('p1:converter-studio.fit-target')).toBe('10');
+    fitButton(pane).click();
+    await until(() => pane.status()?.dataset.kind === 'done', 'the outcome');
+    expect(pane.status()!.textContent).toContain(
+      '2 attachments, 12 MB → 803 KB. Fits Gmail, Yahoo Mail, Outlook.com and iCloud Mail.',
+    );
+    expect(pane.fake.state.attachments.map((a) => a.name)).toEqual(['IMG_0007.jpg', 'notes.txt']);
+    expect(pane.server.requests.map((r) => r.url)).toEqual([`${BASE}/v1/formats`]);
+  });
+
+  it('without a key, says what a key would do and links to the account page', async () => {
+    const scan = { ...contract, bytes: filler(15_900_000, '%PDF') };
+    const pane = await mount(
+      { host: 'Outlook', mail: { mode: 'compose', attachments: [scan, big] } },
+      { key: null },
+    );
+    await until(() => pane.root.querySelector('section.fit'));
+    fitButton(pane).click();
+    await until(() => pane.status()?.dataset.kind === 'warning', 'the outcome');
+    const text = pane.status()!.textContent;
+    expect(text).toContain(
+      '2 attachments, 27.9 MB → 16.7 MB. Still over 16 MB: Contract.pdf (15.9 MB).',
+    );
+    expect(text).toContain('Share it as a OneDrive link instead');
+    expect(text).toContain(
+      'With a Converter Studio API key, Contract.pdf could be made smaller on its servers.',
+    );
+    pane.status()!.querySelector<HTMLButtonElement>('button.link')!.click();
+    expect(pane.opened).toEqual(['https://converter.studio/account#api-keys']);
+  });
+
+  it('with a key: the price first, then the result and the credits used', async () => {
+    // 10 MB chosen earlier: the photo alone does not bring the draft under it.
+    const store = storage();
+    store.setItem('p1:converter-studio.fit-target', '10');
+    const pane = await mount(
+      { host: 'Outlook', mail: { mode: 'compose', attachments: [contract, big, notes] } },
+      { store },
+    );
+    await until(() => pane.text().includes('Contract.pdf'), 'the attachments');
+    expect(pane.root.querySelector<HTMLSelectElement>('section.fit select')!.value).toBe('10');
+    fitButton(pane).click();
+    await until(() => pane.status()?.dataset.kind === 'question', 'the price');
+    expect(pane.status()!.textContent).toContain(
+      'Making Contract.pdf smaller on Converter Studio’s servers costs 1 credit.',
+    );
+    expect(pane.server.requests.some((r) => r.url.endsWith('/confirm'))).toBe(false);
+    expect([...pane.status()!.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
+      'Fit for 1 credit',
+      'Cancel',
+    ]);
+    await pane.click('Fit for 1 credit');
+    await until(() => pane.status()?.dataset.kind === 'done', 'the outcome');
+    expect(pane.status()!.textContent).toMatch(/3 attachments, 24 MB → 803 KB\. .*1 credit used\./);
+    expect(pane.fake.state.attachments.map((a) => a.name)).toEqual([
+      'Contract.pdf',
+      'IMG_0007.jpg',
+      'notes.txt',
+    ]);
+  });
+
+  it('Cancel at the price charges nothing and keeps the photos made smaller', async () => {
+    const store = storage();
+    store.setItem('p1:converter-studio.fit-target', '10');
+    const pane = await mount(
+      { host: 'Outlook', mail: { mode: 'compose', attachments: [contract, big] } },
+      { store },
+    );
+    await until(() => pane.text().includes('Contract.pdf'), 'the attachments');
+    fitButton(pane).click();
+    await until(() => pane.status()?.dataset.kind === 'question', 'the price');
+    await pane.click('Cancel');
+    await until(() => pane.status()?.dataset.kind === 'warning', 'the outcome');
+    expect(pane.status()!.textContent).toContain(
+      'Not converted, so nothing was charged: Contract.pdf.',
+    );
+    expect(pane.server.requests.some((r) => r.url.endsWith('/confirm'))).toBe(false);
+    expect(pane.fake.state.attachments.map((a) => [a.name, a.bytes.length])).toEqual([
+      ['Contract.pdf', 12_000_000],
+      ['IMG_0007.jpg', 802_161],
+    ]);
+  });
+
+  it('says which ones the servers could not make smaller: kept, nothing charged', async () => {
+    const song = { id: 'b4', name: 'Interview.mp3', bytes: filler(12_000_000, 'ID3') };
+    const store = storage();
+    store.setItem('p1:converter-studio.fit-target', '10');
+    const pane = await mount(
+      { host: 'Outlook', mail: { mode: 'compose', attachments: [contract, song] } },
+      { store, scenario: { notSmaller: ['Interview.mp3'] } },
+    );
+    await until(() => pane.text().includes('Interview.mp3'), 'the attachments');
+    fitButton(pane).click();
+    await until(() => pane.status()?.dataset.kind === 'question', 'the price');
+    await pane.click('Fit for 2 credits');
+    await until(() => pane.status()?.dataset.kind === 'warning', 'the outcome');
+    // In the outcome's one line, after the credits.
+    expect(pane.status()!.querySelector('.status-line')!.textContent).toBe(
+      '2 attachments, 24 MB → 12 MB. Still over 10 MB: Interview.mp3 (12 MB). 1 credit used. ' +
+        'Already as small as it gets, so kept as it was (nothing charged): Interview.mp3.',
+    );
+    expect(pane.status()!.textContent).not.toContain('stays as it was');
+    expect(pane.fake.state.attachments.map((a) => [a.name, a.bytes.length])).toEqual([
+      ['Contract.pdf', 9],
+      ['Interview.mp3', 12_000_000],
+    ]);
+  });
+
+  it('says when the attachments fit already, and is not offered on a received message', async () => {
+    const pane = await mount({ host: 'Outlook', mail: { mode: 'compose', attachments: [notes] } });
+    await until(() => pane.root.querySelector('section.fit'));
+    fitButton(pane).click();
+    await until(() => pane.status()?.dataset.kind === 'done');
+    expect(pane.status()!.textContent).toBe(
+      'The attachments are already under 16 MB (1 KB). Nothing was changed.',
+    );
+    const read = await mount({ host: 'Outlook', mail: { mode: 'read', attachments: [notes] } });
+    await until(() => read.text().includes('notes.txt'));
+    expect(read.root.querySelector('section.fit')).toBeNull();
   });
 });
 

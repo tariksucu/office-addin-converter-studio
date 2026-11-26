@@ -76,6 +76,12 @@ export class Tasks {
     return this.actions;
   }
 
+  /** An ending short of the goal, with what to do next below it (not an error). */
+  warning(...lines: string[]): HTMLElement {
+    this.show(lines.join(' '), 'warning');
+    return this.actions;
+  }
+
   error(text: string): void {
     this.show(text, 'error');
   }
@@ -92,30 +98,38 @@ export class Tasks {
   }
 
   private askPrice(credits: number, signal: AbortSignal): Promise<boolean> {
+    return this.ask(this.t.price(credits), this.t.pay, this.t.cancel, signal);
+  }
+
+  /**
+   * A question with two answers, `yes` first (a price before anything is charged); resolves
+   * false when the job is canceled meanwhile.
+   */
+  ask(question: string, yes: string, no: string, signal?: AbortSignal): Promise<boolean> {
     return new Promise((resolve) => {
-      this.show(this.t.price(credits), 'question');
-      const answer = (yes: boolean) => {
+      this.show(question, 'question');
+      const answer = (value: boolean) => {
         clear(this.actions);
         this.addCancel();
-        resolve(yes);
+        resolve(value);
       };
       clear(this.actions);
-      const pay = h(
+      const first = h(
         this.doc,
         'button',
         { type: 'button', className: 'primary', onclick: () => answer(true) },
-        this.t.pay,
+        yes,
       );
       this.actions.append(
-        pay,
-        h(this.doc, 'button', { type: 'button', onclick: () => answer(false) }, this.t.cancel),
+        first,
+        h(this.doc, 'button', { type: 'button', onclick: () => answer(false) }, no),
       );
-      signal.addEventListener('abort', () => resolve(false));
-      pay.focus();
+      signal?.addEventListener('abort', () => resolve(false));
+      first.focus();
     });
   }
 
-  private show(text: string, kind: 'progress' | 'question' | 'done' | 'error'): void {
+  private show(text: string, kind: 'progress' | 'question' | 'done' | 'warning' | 'error'): void {
     this.element.hidden = false;
     this.element.dataset.kind = kind;
     // Errors interrupt; progress is read out when the reader is idle.

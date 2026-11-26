@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0" xsi:type="MailApp">
   <Id>12f68e10-b4e3-420b-9bdc-ea765829a5f4</Id>
-  <Version>1.0.0.0</Version>
+  <Version>1.1.0.0</Version>
   <ProviderName>Converter Studio</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Attachment Converter for Converter Studio"/>
-  <Description DefaultValue="Convert email attachments with Converter Studio: HEIC photos to JPG, Word, Excel and PowerPoint files to PDF, smaller PDFs and more. Replace an attachment while you write, or reply with the converted file."/>
+  <Description DefaultValue="Fit the attachments of a message under 16 or 10 MB for sending (photos made smaller on your computer) and convert attachments with Converter Studio: HEIC to JPG, Office files to PDF, smaller PDFs and more."/>
   <IconUrl DefaultValue="https://converter.studio/integrations/office/assets/icon-64.png"/>
   <HighResolutionIconUrl DefaultValue="https://converter.studio/integrations/office/assets/icon-128.png"/>
   <SupportUrl DefaultValue="https://converter.studio/support"/>
@@ -109,7 +109,7 @@
       </bt:ShortStrings>
       <bt:LongStrings>
       <bt:String id="ReadButton.Tooltip" DefaultValue="Convert this message’s attachments with Converter Studio (HEIC to JPG, Office files to PDF, smaller PDFs and more), then reply with the result or download it."/>
-      <bt:String id="ComposeButton.Tooltip" DefaultValue="Convert the attachments of the message you are writing with Converter Studio, and replace them or attach the result."/>
+      <bt:String id="ComposeButton.Tooltip" DefaultValue="Fit the attachments of the message you are writing for sending (photos made smaller on your computer), or convert them with Converter Studio and replace them or attach the result."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

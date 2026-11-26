@@ -160,7 +160,7 @@ ${resources(base, {
     'ReadButton.Tooltip':
       'Convert this message’s attachments with Converter Studio (HEIC to JPG, Office files to PDF, smaller PDFs and more), then reply with the result or download it.',
     'ComposeButton.Tooltip':
-      'Convert the attachments of the message you are writing with Converter Studio, and replace them or attach the result.',
+      'Fit the attachments of the message you are writing for sending (photos made smaller on your computer), or convert them with Converter Studio and replace them or attach the result.',
   },
 })}
   </VersionOverrides>

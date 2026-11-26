@@ -37,6 +37,9 @@ export interface FakeOptions {
   readonly theme?: Partial<Office.OfficeTheme>;
   /** PowerPoint with no text box selected refuses text. */
   readonly noTextSelection?: boolean;
+  /** Outlook fails to add attachments of these names, and to remove these ids. */
+  readonly refuseAttach?: readonly string[];
+  readonly refuseRemove?: readonly string[];
 }
 
 /** What the add-in did to the document or message. */
@@ -95,14 +98,18 @@ function atLeast(have: string | undefined, want: string): boolean {
 }
 
 function toBase64(bytes: Uint8Array): string {
+  // In pieces: the drafts of the fit tests hold tens of megabytes.
   let s = '';
-  for (const b of bytes) s += String.fromCharCode(b);
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s);
 }
 
 function fromBase64(base64: string): Uint8Array {
   const s = atob(base64);
-  return Uint8Array.from(s, (c) => c.charCodeAt(0));
+  const bytes = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
+  return bytes;
 }
 
 /** A loaded-or-not property bag, as Office's proxy objects behave. */
@@ -203,6 +210,8 @@ export function fakeOffice(options: FakeOptions) {
         const callback = callbackOf(rest);
         if (base64.length > 34_865_152)
           return failed(callback, 9011, 'The attachment is too large.');
+        if (options.refuseAttach?.includes(name))
+          return failed(callback, 9008, 'The attachment could not be added.');
         const id = `att${nextAttachment++}`;
         state.attachments.push({ id, name, bytes: fromBase64(base64) });
         ok(callback, id);
@@ -213,6 +222,8 @@ export function fakeOffice(options: FakeOptions) {
         const callback = callbackOf(rest);
         const index = state.attachments.findIndex((x) => x.id === id);
         if (index === -1) return failed(callback, 9002, 'The attachment ID was invalid.');
+        if (options.refuseRemove?.includes(id))
+          return failed(callback, 9007, 'The attachment could not be removed.');
         state.attachments.splice(index, 1);
         ok(callback, undefined);
         later(() => changeHandlers.forEach((h) => h()));

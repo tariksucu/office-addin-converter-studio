@@ -1,12 +1,16 @@
 import { ApiError, ConverterApi, type Account, type Fetch } from '../api';
 import { Catalog } from '../catalog';
+import { loadLibheif } from '../fit/heic';
+import { browserPhotos, type PhotoEncoder } from '../fit/photo';
 import { isApiKey, keyStore } from '../key-store';
 import { documentHost, openDocument } from '../office/document';
 import { applyTheme, displayLanguage, openLink, partitionKey } from '../office/environment';
 import { openMail } from '../office/mail';
+import { fitTargetStore, type FitTargetStore } from '../settings';
 import { messages, type Messages } from '../strings';
 import { mountDocument } from './document-view';
 import { clear, h, uid } from './dom';
+import { mountFit } from './fit-view';
 import { mountMail } from './mail-view';
 import { Tasks } from './tasks';
 
@@ -27,6 +31,8 @@ export interface Environment {
   readonly apiBase: string;
   readonly fetch?: Fetch;
   readonly storage: Storage | null;
+  /** Photos made smaller on the computer (tests stand in for the browser's canvas). */
+  readonly photos?: PhotoEncoder;
 }
 
 /** What every view gets. */
@@ -40,6 +46,11 @@ export interface Context {
   readonly open: (url: string) => void;
   /** Reads the account again (its credits after a conversion). */
   readonly refreshAccount: () => void;
+  readonly photos: PhotoEncoder;
+  /** The total "Fit attachments for sending" aims at, remembered. */
+  readonly fitTargets: FitTargetStore;
+  /** Opens the account page's API keys. */
+  readonly openKeys: () => void;
 }
 
 export function siteLinks(apiBase: string) {
@@ -72,6 +83,9 @@ export async function mountApp(env: Environment): Promise<void> {
   }
 
   const store = keyStore(env.storage, partitionKey(office));
+  const photos = env.photos ?? browserPhotos(doc, () => loadLibheif(doc));
+  const fitTargets = fitTargetStore(env.storage, partitionKey(office));
+  const openKeys = () => open(links.keys);
   const api = (key: string) => new ConverterApi(env.apiBase, key, env.fetch);
   show(root, h(doc, 'p', { className: 'notice' }, t.loading));
 
@@ -110,6 +124,9 @@ export async function mountApp(env: Environment): Promise<void> {
           () => undefined,
         );
       },
+      photos,
+      fitTargets,
+      openKeys,
     };
     const disconnect = h(
       doc,
@@ -170,6 +187,27 @@ export async function mountApp(env: Environment): Promise<void> {
     const error = h(doc, 'p', { className: 'error', role: 'alert' }, problem ?? '');
     error.hidden = !problem;
     const button = h(doc, 'button', { type: 'submit', className: 'primary' }, t.connect);
+    // A message being written: its attachments can be fitted for sending before any key.
+    const mail = kind === 'mail' ? openMail(office) : null;
+    const fit: Node[] = [];
+    if (mail?.mode === 'compose') {
+      const tasks = new Tasks(doc, t);
+      tasks.onBusy((busy) => (button.disabled = busy));
+      fit.push(
+        mountFit({
+          doc,
+          t,
+          tasks,
+          catalog,
+          mail,
+          photos,
+          api: null,
+          targets: fitTargets,
+          openKeys,
+        }),
+        tasks.element,
+      );
+    }
     const form = h(
       doc,
       'form',
@@ -217,6 +255,7 @@ export async function mountApp(env: Environment): Promise<void> {
         'main',
         { className: 'view first-run' },
         h(doc, 'h1', {}, t.appName),
+        ...fit,
         h(doc, 'p', {}, kind === 'mail' ? t.introMail : t.introDocument),
         h(doc, 'p', {}, t.introAccount),
         h(

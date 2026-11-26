@@ -6,7 +6,7 @@
   "outlook": {
     "id": "12f68e10-b4e3-420b-9bdc-ea765829a5f4",
     "name": "Attachment Converter for Converter Studio",
-    "description": "Convert email attachments with Converter Studio: HEIC photos to JPG, Word, Excel and PowerPoint files to PDF, smaller PDFs and more. Replace an attachment while you write, or reply with the converted file."
+    "description": "Fit the attachments of a message under 16 or 10 MB for sending (photos made smaller on your computer) and convert attachments with Converter Studio: HEIC to JPG, Office files to PDF, smaller PDFs and more."
   },
   "office": {
     "id": "146b3a96-2687-4479-b8fa-4d2cf2e99273",

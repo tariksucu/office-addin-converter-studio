@@ -56,33 +56,55 @@ export interface Result {
 }
 
 export async function convert(api: ConverterApi, job: Job, hooks: Hooks): Promise<Result> {
-  const now = hooks.now ?? Date.now;
-  const sleep = hooks.sleep ?? delay;
-  const deadline = now() + TIMEOUT_MS;
-  const key = (hooks.idempotencyKey ?? newIdempotencyKey)();
+  const conversion = await submit(api, job, AUTO_CONFIRM_CREDITS, hooks);
+  return finish(await follow(api, conversion, hooks), job.name);
+}
 
+/**
+ * Sends the file up and asks for the conversion: it goes ahead on its own up to `maxCredits`
+ * (0: it only gets a price and waits in `quoted`).
+ */
+export async function submit(
+  api: ConverterApi,
+  job: Job,
+  maxCredits: number,
+  hooks: Omit<Hooks, 'confirmPrice'>,
+): Promise<Conversion> {
+  const sleep = hooks.sleep ?? delay;
+  const key = (hooks.idempotencyKey ?? newIdempotencyKey)();
   hooks.onStep?.({ step: 'uploading', sent: 0, total: job.file.size });
   const upload = await api.createUpload(job.name, job.file.size, hooks.signal);
   await api.upload(upload, job.file, {
     signal: hooks.signal,
     onProgress: (sent) => hooks.onStep?.({ step: 'uploading', sent, total: job.file.size }),
   });
-  const request = {
-    uploadId: upload.id,
-    to: job.to,
-    options: job.options,
-    maxCredits: AUTO_CONFIRM_CREDITS,
-  };
-  let conversion: Conversion;
+  const request = { uploadId: upload.id, to: job.to, options: job.options, maxCredits };
   try {
-    conversion = await api.convert(request, key, hooks.signal);
+    return await api.convert(request, key, hooks.signal);
   } catch (error) {
     // The answer was lost on the way: the same key gives the same conversion, never a second.
     if (!(error instanceof ApiError) || error.code !== 'network') throw error;
     await sleep(2000, hooks.signal);
-    conversion = await api.convert(request, key, hooks.signal);
+    return api.convert(request, key, hooks.signal);
   }
+}
 
+/**
+ * Follows a conversion until it settles. A price above its limit is put to `confirmPrice`;
+ * with `untilQuoted` the conversion is handed back as soon as it waits for a go-ahead.
+ */
+export async function follow(
+  api: ConverterApi,
+  start: Conversion,
+  hooks: Omit<Hooks, 'confirmPrice'> & {
+    readonly confirmPrice?: Hooks['confirmPrice'];
+    readonly untilQuoted?: boolean;
+  },
+): Promise<Conversion> {
+  const now = hooks.now ?? Date.now;
+  const sleep = hooks.sleep ?? delay;
+  const deadline = now() + TIMEOUT_MS;
+  let conversion = start;
   let failures = 0;
   for (;;) {
     hooks.onStep?.({
@@ -91,13 +113,14 @@ export async function convert(api: ConverterApi, job: Job, hooks: Hooks): Promis
       progress: conversion.progress,
     });
     if (conversion.status === 'quoted') {
+      if (hooks.untilQuoted || !hooks.confirmPrice) return conversion;
       const credits = conversion.credits ?? 0;
       if (!(await hooks.confirmPrice(credits)))
         throw new ApiError('declined', 'Canceled. Nothing was charged.', 0);
       conversion = await api.confirm(conversion.id, hooks.signal);
       continue;
     }
-    if (settled(conversion.status)) break;
+    if (settled(conversion.status)) return conversion;
     if (hooks.signal?.aborted) throw new ApiError('canceled', 'Canceled.', 0);
     if (now() > deadline)
       throw new ApiError(
@@ -118,7 +141,10 @@ export async function convert(api: ConverterApi, job: Job, hooks: Hooks): Promis
       throw error;
     }
   }
+}
 
+/** A settled conversion as a result, or its error. */
+export function finish(conversion: Conversion, name: string): Result {
   if (conversion.status !== 'done' || !conversion.downloadUrl) {
     const error = conversion.error;
     if (error) throw new ApiError(error.code, error.message, 0, error.params ?? {});
@@ -133,7 +159,7 @@ export async function convert(api: ConverterApi, job: Job, hooks: Hooks): Promis
   return {
     conversion,
     downloadUrl: conversion.downloadUrl,
-    outputName: conversion.outputName ?? job.name,
+    outputName: conversion.outputName ?? name,
     size: conversion.outputSize ?? 0,
     credits: conversion.credits ?? 0,
   };

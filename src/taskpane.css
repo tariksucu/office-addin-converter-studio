@@ -254,8 +254,27 @@ button:disabled {
   border-left-color: var(--ok);
 }
 
+/* Short of the goal (attachments still over the total): the accent, neither success nor error. */
+.status[data-kind='warning'] {
+  border-left-color: var(--accent);
+}
+
 .status-line {
   margin: 0;
+}
+
+.status-actions .hint {
+  margin: 6px 0 0;
+}
+
+/* "Fit attachments for sending", above the attachment list (and above the key on a first run). */
+section.fit {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+section.fit .hint:last-child {
+  margin-bottom: 0;
 }
 
 footer {

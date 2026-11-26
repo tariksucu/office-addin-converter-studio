@@ -42,6 +42,11 @@ export interface FormatInfo {
   readonly extensions: readonly string[];
   /** What it converts to on the server right now, most used first. */
   readonly to: readonly string[];
+  /**
+   * The servers make it smaller in its own format (MP4 → MP4, MP3 → MP3…, asked for with a
+   * setting such as `emailFit`). Missing from servers before 2026-11-26.
+   */
+  readonly compress?: boolean;
 }
 
 export interface Account {
@@ -81,6 +86,11 @@ export interface Conversion {
   readonly progress: number | null;
   readonly outputName: string | null;
   readonly outputSize: number | null;
+  /**
+   * Done, and the result is the upload itself: it could not be made smaller in its own format,
+   * so nothing was charged. Missing from servers before 2026-11-26.
+   */
+  readonly notSmaller?: boolean;
   readonly downloadUrl: string | null;
   readonly expiresAt: string | null;
   readonly error: ApiErrorBody | null;
