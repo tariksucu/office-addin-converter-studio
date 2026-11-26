@@ -11,7 +11,9 @@ import {
 } from '../src/fit/orientation';
 import { hasAlpha, isAnimated, outputFor } from '../src/fit/photo';
 
-const samples = join(__dirname, '..', '..', '..', 'fixtures', 'samples');
+// Converter Studio's own small sample pictures (the HEIC is stored sideways like a phone photo, with
+// a made-up camera, date and place), kept here so the tests run in this repository on their own.
+const samples = join(__dirname, 'fixtures', 'samples');
 const probe = Uint8Array.from(atob(ORIENTATION_PROBE.split(',')[1]!), (c) => c.charCodeAt(0));
 
 /** A JPEG's start with an EXIF block saying `orientation`, little- or big-endian. */
